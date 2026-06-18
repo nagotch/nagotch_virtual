@@ -2,7 +2,7 @@
 
 export const TRAQ_AUTH_URL   = 'https://q.trap.jp/api/v3/oauth2/authorize';
 export const TRAQ_TOKEN_URL  = 'https://q.trap.jp/api/v3/oauth2/token';
-export const TRAQ_ME_URL     = 'https://q.trap.jp/api/v3/users/me';
+export const TRAQ_ME_URL     = 'https://q.trap.jp/api/v3/oauth2/userinfo';
 
 export const generateCodeVerifier = (): string => {
   const buf = new Uint8Array(32);
@@ -62,5 +62,9 @@ export const getTraqMe = async (accessToken: string): Promise<{ name: string }> 
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error(`Failed to get user info: ${res.status}`);
-  return res.json() as Promise<{ name: string }>;
+  const data = await res.json() as Record<string, string>;
+  // OIDC userinfo: preferred_username or name contains the traQ username
+  const name = data.preferred_username ?? data.name ?? data.sub;
+  if (!name) throw new Error('Could not determine traQ username from userinfo');
+  return { name };
 };
