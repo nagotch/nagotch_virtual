@@ -287,7 +287,7 @@ type Standings = {
   rows: StandingRow[];
 };
 
-type ReportedSub = { problem_id: string; result: string; epoch_second: number };
+type ReportedSub = { submission_id: number; problem_id: string; result: string; epoch_second: number };
 
 // 報告された提出はDBから即時に読めるのでキャッシュは不要だが、
 // 提出報告時にキャッシュを無効化するための仕組みは維持する。
@@ -325,9 +325,12 @@ const computeStandings = (contestId: string): Standings | null => {
   const problemIds = new Set(problems.map((p) => p.problem_id));
   const pointsOf = new Map(problems.map((p) => [p.problem_id, p.points]));
 
+  // 同一秒の提出が複数あっても順序が定まるよう、時刻→提出IDの昇順で取得。
+  // 各問題で先頭から最初のACを採用する＝一番早い提出を参照する。
   const querySubs = db.query<ReportedSub, [string, number, number]>(
-    `SELECT problem_id, result, epoch_second FROM reported_submissions
-     WHERE atcoder_id = ? AND epoch_second BETWEEN ? AND ? ORDER BY epoch_second`,
+    `SELECT submission_id, problem_id, result, epoch_second FROM reported_submissions
+     WHERE atcoder_id = ? AND epoch_second BETWEEN ? AND ?
+     ORDER BY epoch_second ASC, submission_id ASC`,
   );
 
   const rows: StandingRow[] = [];
@@ -338,6 +341,10 @@ const computeStandings = (contestId: string): Standings | null => {
     const byProblem = new Map<string, ReportedSub[]>();
     for (const s of subs) {
       (byProblem.get(s.problem_id) ?? byProblem.set(s.problem_id, []).get(s.problem_id)!).push(s);
+    }
+    // 念のため各問題の提出も時刻→IDで昇順に整列（一番早いものを先頭に）
+    for (const list of byProblem.values()) {
+      list.sort((a, b) => (a.epoch_second - b.epoch_second) || (a.submission_id - b.submission_id));
     }
 
     const pres: Record<string, ProblemResult> = {};
