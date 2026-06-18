@@ -334,8 +334,9 @@ textarea.text-input {
 }
 
 /* ---- wider cards & headings ---- */
+/* 横幅いっぱいに使う（左右の余白のみ残す） */
 .card-wide {
-  max-width: 980px;
+  max-width: none;
 }
 
 .card-head {
@@ -586,6 +587,40 @@ code {
   font-size: 14px;
 }
 
+/* ---- contest detail: 2カラム（左=問題 / 右=順位表） ---- */
+.detail-cols {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+.detail-left {
+  flex: 0 0 360px;
+  min-width: 0;
+}
+.detail-right {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.detail-left .problem-table {
+  margin-top: 12px;
+}
+.detail-right .standings-wrap {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
+@media (max-width: 900px) {
+  .detail-cols {
+    flex-direction: column;
+  }
+  .detail-left {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
 /* ---- standings ---- */
 .standings-wrap {
   margin-top: 28px;
@@ -607,21 +642,40 @@ code {
 .standings-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
 .standings-table th,
 .standings-table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+  border: 1px solid var(--border);
   text-align: center;
   white-space: nowrap;
 }
 
-.standings-table th {
+.standings-table thead th {
+  background: var(--bg);
   color: var(--text-muted);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+/* 問題ヘッダ: 記号＋配点 */
+.st-prob-h {
+  min-width: 56px;
+}
+.st-prob-letter {
+  display: block;
+  color: var(--text-h);
+  font-weight: 700;
+  font-size: 13px;
+}
+.st-prob-pts {
+  display: block;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .st-user {
@@ -633,34 +687,52 @@ code {
   color: var(--text-h);
 }
 
-.st-score {
+/* 総合（得点＋時間） */
+.st-total {
+  background: var(--bg);
+}
+.st-total-score {
+  display: block;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--text-h);
+  font-size: 14px;
 }
-
-.st-time {
+.st-total-time {
+  display: block;
   color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
+  font-size: 11px;
 }
 
+/* 問題セル */
 .st-cell {
-  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.st-cell-score {
+  display: block;
+  font-weight: 700;
+}
+.st-cell-time {
+  display: block;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
+/* AC: 緑背景＋緑文字（AtCoder風） */
 .st-ac {
-  color: #16a34a;
-  font-weight: 600;
+  background: rgba(34, 197, 94, 0.15);
+}
+.st-ac .st-cell-score {
+  color: #1a9e4b;
 }
 
-.st-wa {
+/* 未正解（誤答あり）: 赤 */
+.st-wa .st-cell-score {
   color: #ef4444;
 }
 
 .st-pen {
-  color: #ef4444;
+  font-weight: 700;
   font-size: 11px;
-  margin-left: 2px;
 }
 
 .diff-circle {
