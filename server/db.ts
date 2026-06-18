@@ -58,9 +58,20 @@ db.run(`
     difficulty      INTEGER,              -- 推定難易度 (null可)
     color           TEXT,                 -- 色キー (null可)
     url             TEXT NOT NULL,
+    points          INTEGER NOT NULL DEFAULT 100, -- 配点（順位表用）
     PRIMARY KEY (contest_id, idx)
   )
 `);
+
+// points カラム追加（旧版から移行。既存行は (idx+1)*100 で埋める）
+const cpCols = db
+  .query<{ name: string }, []>("PRAGMA table_info(contest_problems)")
+  .all()
+  .map((r) => r.name);
+if (!cpCols.includes('points')) {
+  db.run("ALTER TABLE contest_problems ADD COLUMN points INTEGER NOT NULL DEFAULT 100");
+  db.run("UPDATE contest_problems SET points = (idx + 1) * 100");
+}
 
 db.run(`
   CREATE TABLE IF NOT EXISTS participants (
