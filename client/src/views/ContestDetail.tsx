@@ -107,44 +107,51 @@ export default function ContestDetail({ id, meId }: { id: string; meId: string }
         )}
       </div>
 
-      {data.canViewProblems ? (
-        <table className="problem-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>問題</th>
-              <th>難易度</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.problems.map((p, i) => (
-              <tr key={p.problem_id}>
-                <td className="pt-idx">{String.fromCharCode(65 + i)}</td>
-                <td>
-                  <a href={p.url} target="_blank" rel="noreferrer" className="pt-link">
-                    {p.title}
-                  </a>
-                  <span className="pt-src">{p.atcoder_contest} {p.problem_index}</span>
-                </td>
-                <td>
-                  <span className="diff-cell">
-                    <DifficultyCircle difficulty={p.difficulty} />
-                    <span className={`diff-value${p.difficulty === null ? ' unknown' : ''}`}>
-                      {p.difficulty === null ? '不明' : p.difficulty}
-                    </span>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="empty">{problemsHiddenReason()}</p>
-      )}
-
       {error && <p className="msg error">{error}</p>}
 
-      <Standings key={standingsKey} contestId={id} />
+      <div className="detail-cols">
+        <div className="detail-left">
+          <h2 className="section-title">📝 問題</h2>
+          {data.canViewProblems ? (
+            <table className="problem-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>問題</th>
+                  <th>難易度</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.problems.map((p, i) => (
+                  <tr key={p.problem_id}>
+                    <td className="pt-idx">{String.fromCharCode(65 + i)}</td>
+                    <td>
+                      <a href={p.url} target="_blank" rel="noreferrer" className="pt-link">
+                        {p.title}
+                      </a>
+                      <span className="pt-src">{p.atcoder_contest} {p.problem_index}</span>
+                    </td>
+                    <td>
+                      <span className="diff-cell">
+                        <DifficultyCircle difficulty={p.difficulty} />
+                        <span className={`diff-value${p.difficulty === null ? ' unknown' : ''}`}>
+                          {p.difficulty === null ? '不明' : p.difficulty}
+                        </span>
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="empty">{problemsHiddenReason()}</p>
+          )}
+        </div>
+
+        <div className="detail-right">
+          <Standings key={standingsKey} contestId={id} />
+        </div>
+      </div>
 
       {isOwner && (
         <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>

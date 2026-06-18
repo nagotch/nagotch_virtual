@@ -586,6 +586,40 @@ code {
   font-size: 14px;
 }
 
+/* ---- contest detail: 2カラム（左=問題 / 右=順位表） ---- */
+.detail-cols {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-top: 20px;
+}
+.detail-left {
+  flex: 0 0 360px;
+  min-width: 0;
+}
+.detail-right {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.detail-left .problem-table {
+  margin-top: 12px;
+}
+.detail-right .standings-wrap {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
+@media (max-width: 900px) {
+  .detail-cols {
+    flex-direction: column;
+  }
+  .detail-left {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
 /* ---- standings ---- */
 .standings-wrap {
   margin-top: 28px;
