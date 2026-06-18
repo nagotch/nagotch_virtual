@@ -73,6 +73,13 @@ const getAbcProblems = async (): Promise<EnrichedProblem[]> => {
     }));
 };
 
+// AtCoder Problems の難易度補正。生のdifficultyは400未満で負になり得るため、
+// 表示上は 400/exp((400-d)/400) で 0 に漸近する正の値へ補正する（公式フロントと同じ式）。
+export const correctDifficulty = (raw: number): number => {
+  if (raw >= 400) return Math.round(raw);
+  return Math.round(400 / Math.exp((400 - raw) / 400));
+};
+
 const colorOf = (difficulty: number): ColorKey => {
   for (const c of COLORS) {
     if (difficulty >= c.min && difficulty <= c.max) return c.key;
@@ -100,15 +107,18 @@ export type GeneratedProblem = {
   url: string;
 };
 
-const toGenerated = (p: EnrichedProblem): GeneratedProblem => ({
-  id: p.id,
-  contest_id: p.contest_id,
-  problem_index: p.problem_index,
-  title: p.title,
-  difficulty: p.difficulty,
-  color: p.difficulty === null ? null : colorOf(p.difficulty),
-  url: `https://atcoder.jp/contests/${p.contest_id}/tasks/${p.id}`,
-});
+const toGenerated = (p: EnrichedProblem): GeneratedProblem => {
+  const diff = p.difficulty === null ? null : correctDifficulty(p.difficulty);
+  return {
+    id: p.id,
+    contest_id: p.contest_id,
+    problem_index: p.problem_index,
+    title: p.title,
+    difficulty: diff,
+    color: diff === null ? null : colorOf(diff),
+    url: `https://atcoder.jp/contests/${p.contest_id}/tasks/${p.id}`,
+  };
+};
 
 // 方式1: 過去ABCから問題ごとにランダム。
 // A問題はA問題から、B問題はB問題から…と、各スロットを同じ問題インデックスの
