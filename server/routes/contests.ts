@@ -150,6 +150,28 @@ app.get('/', (c) => {
   return c.json({ contests: rows });
 });
 
+// GET /api/contests/active-problems → 開催中コンテストに含まれる問題ID一覧
+// （ユーザースクリプトの報告ボタン表示判定用）。:id より前に置くこと。
+app.get('/active-problems', (c) => {
+  const now = Date.now();
+  const rows = db.query<
+    { start_at: string | null; duration_minutes: number | null; problem_id: string },
+    []
+  >(`
+    SELECT c.start_at, c.duration_minutes, p.problem_id
+    FROM contests c JOIN contest_problems p ON p.contest_id = c.id
+  `).all();
+
+  const ids = new Set<string>();
+  for (const r of rows) {
+    if (!r.start_at) continue;
+    const start = new Date(r.start_at).getTime();
+    const end = start + (r.duration_minutes ?? 0) * 60_000;
+    if (now >= start && now < end) ids.add(r.problem_id);
+  }
+  return c.json({ problemIds: [...ids] });
+});
+
 // GET /api/contests/:id → 詳細（問題セット込み）
 app.get('/:id', (c) => {
   const id = c.req.param('id');

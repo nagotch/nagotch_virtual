@@ -125,8 +125,8 @@ export default function MyPage({
         <div className="token-section">
           <h2 className="section-title">📝 リアルタイム順位表の使い方</h2>
           <p className="hint">
-            ユーザースクリプト(Tampermonkey)を入れると、AtCoderでの提出結果が自動で順位表に反映されます。
-            スクリプトはログイン中のAtCoder IDを自動取得するので、設定は不要です。
+            ユーザースクリプト(Tampermonkey)を入れると、開催中コンテストの問題の<strong>提出詳細ページ</strong>に
+            「virtualABCに報告」ボタンが表示されます。押すと結果が順位表に反映されます（設定不要・ログイン中のAtCoder IDを自動取得）。
           </p>
         </div>
       )}

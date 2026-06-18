@@ -47,7 +47,7 @@ export default function Standings({ contestId }: { contestId: string }) {
       </div>
 
       <p className="hint" style={{ marginBottom: 12 }}>
-        ※ ユーザースクリプト(Tampermonkey)を入れた参加者の提出がリアルタイムで反映されます。反映されない場合は「更新」を押してください。
+        ※ 提出詳細ページでユーザースクリプトの「報告」ボタンを押すと反映されます。反映されない場合は「更新」を押してください。
       </p>
 
       {data.rows.length === 0 ? (
