@@ -70,6 +70,7 @@ export type ContestDetail = {
   contest: Omit<ContestSummary, 'problem_count'>;
   problems: Problem[];
   participants: Participant[];
+  canViewProblems: boolean;
 };
 
 // 色の定義（表示用）

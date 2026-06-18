@@ -181,19 +181,30 @@ app.get('/:id', (c) => {
   >('SELECT id, title, mode, created_by, created_at, start_at, duration_minutes FROM contests WHERE id = ?').get(id);
   if (!contest) return c.json({ error: 'not found' }, 404);
 
-  const problems = db.query<
-    { idx: number; problem_id: string; atcoder_contest: string; problem_index: string; title: string; difficulty: number | null; color: string | null; url: string; points: number },
-    [string]
-  >(`
-    SELECT idx, problem_id, atcoder_contest, problem_index, title, difficulty, color, url, points
-    FROM contest_problems WHERE contest_id = ? ORDER BY idx
-  `).all(id);
-
   const participants = db.query<{ traq_id: string; atcoder_id: string }, [string]>(
     'SELECT traq_id, atcoder_id FROM participants WHERE contest_id = ?',
   ).all(id);
 
-  return c.json({ contest, problems, participants });
+  // 問題一覧は「参加済み かつ 開催時間中」のときだけ返す（APIからの先読み防止）
+  const traqId = getTraqId(getCookie(c, 'session'));
+  const joined = !!traqId && participants.some((p) => p.traq_id === traqId);
+  const now = Date.now();
+  const start = contest.start_at ? new Date(contest.start_at).getTime() : null;
+  const end = start !== null ? start + (contest.duration_minutes ?? 0) * 60_000 : null;
+  const ongoing = start !== null && end !== null && now >= start && now < end;
+  const canViewProblems = joined && ongoing;
+
+  const problems = canViewProblems
+    ? db.query<
+        { idx: number; problem_id: string; atcoder_contest: string; problem_index: string; title: string; difficulty: number | null; color: string | null; url: string; points: number },
+        [string]
+      >(`
+        SELECT idx, problem_id, atcoder_contest, problem_index, title, difficulty, color, url, points
+        FROM contest_problems WHERE contest_id = ? ORDER BY idx
+      `).all(id)
+    : [];
+
+  return c.json({ contest, problems, participants, canViewProblems });
 });
 
 // POST /api/contests/:id/join → 参加（AtCoder ID登録済みが必要）

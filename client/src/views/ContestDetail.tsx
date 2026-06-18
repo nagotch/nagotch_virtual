@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, endIso, fmtDateTime, modeLabel, type ContestDetail as Detail } from '../api';
+import { api, contestStatus, endIso, fmtDateTime, modeLabel, type ContestDetail as Detail } from '../api';
 import DifficultyCircle from '../components/DifficultyCircle';
 import Standings from './Standings';
 
@@ -69,6 +69,15 @@ export default function ContestDetail({ id, meId }: { id: string; meId: string }
   const isOwner = data.contest.created_by === meId;
   const joined = data.participants.some((p) => p.traq_id === meId);
 
+  // 問題一覧が見られない理由（参加済み かつ 開催時間中のみ表示）
+  const problemsHiddenReason = (): string => {
+    const status = contestStatus(data.contest.start_at, data.contest.duration_minutes);
+    if (status === 'upcoming') return '⏳ コンテスト開始までお待ちください。問題は開始後に表示されます。';
+    if (status === 'finished') return '🔒 コンテストは終了しました。問題は表示されません。';
+    if (!joined) return '🔒 「参加」すると問題が表示されます。';
+    return '🔒 問題は表示できません。';
+  };
+
   return (
     <div className="card card-wide">
       <div className="card-head">
@@ -98,36 +107,40 @@ export default function ContestDetail({ id, meId }: { id: string; meId: string }
         )}
       </div>
 
-      <table className="problem-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>問題</th>
-            <th>難易度</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.problems.map((p, i) => (
-            <tr key={p.problem_id}>
-              <td className="pt-idx">{String.fromCharCode(65 + i)}</td>
-              <td>
-                <a href={p.url} target="_blank" rel="noreferrer" className="pt-link">
-                  {p.title}
-                </a>
-                <span className="pt-src">{p.atcoder_contest} {p.problem_index}</span>
-              </td>
-              <td>
-                <span className="diff-cell">
-                  <DifficultyCircle difficulty={p.difficulty} />
-                  <span className={`diff-value${p.difficulty === null ? ' unknown' : ''}`}>
-                    {p.difficulty === null ? '不明' : p.difficulty}
-                  </span>
-                </span>
-              </td>
+      {data.canViewProblems ? (
+        <table className="problem-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>問題</th>
+              <th>難易度</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.problems.map((p, i) => (
+              <tr key={p.problem_id}>
+                <td className="pt-idx">{String.fromCharCode(65 + i)}</td>
+                <td>
+                  <a href={p.url} target="_blank" rel="noreferrer" className="pt-link">
+                    {p.title}
+                  </a>
+                  <span className="pt-src">{p.atcoder_contest} {p.problem_index}</span>
+                </td>
+                <td>
+                  <span className="diff-cell">
+                    <DifficultyCircle difficulty={p.difficulty} />
+                    <span className={`diff-value${p.difficulty === null ? ' unknown' : ''}`}>
+                      {p.difficulty === null ? '不明' : p.difficulty}
+                    </span>
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="empty">{problemsHiddenReason()}</p>
+      )}
 
       {error && <p className="msg error">{error}</p>}
 
