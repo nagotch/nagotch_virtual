@@ -150,6 +150,28 @@ app.get('/', (c) => {
   return c.json({ contests: rows });
 });
 
+// GET /api/contests/active-problems → 開催中コンテストに含まれる問題ID一覧
+// （ユーザースクリプトの報告ボタン表示判定用）。:id より前に置くこと。
+app.get('/active-problems', (c) => {
+  const now = Date.now();
+  const rows = db.query<
+    { start_at: string | null; duration_minutes: number | null; problem_id: string },
+    []
+  >(`
+    SELECT c.start_at, c.duration_minutes, p.problem_id
+    FROM contests c JOIN contest_problems p ON p.contest_id = c.id
+  `).all();
+
+  const ids = new Set<string>();
+  for (const r of rows) {
+    if (!r.start_at) continue;
+    const start = new Date(r.start_at).getTime();
+    const end = start + (r.duration_minutes ?? 0) * 60_000;
+    if (now >= start && now < end) ids.add(r.problem_id);
+  }
+  return c.json({ problemIds: [...ids] });
+});
+
 // GET /api/contests/:id → 詳細（問題セット込み）
 app.get('/:id', (c) => {
   const id = c.req.param('id');
@@ -159,19 +181,30 @@ app.get('/:id', (c) => {
   >('SELECT id, title, mode, created_by, created_at, start_at, duration_minutes FROM contests WHERE id = ?').get(id);
   if (!contest) return c.json({ error: 'not found' }, 404);
 
-  const problems = db.query<
-    { idx: number; problem_id: string; atcoder_contest: string; problem_index: string; title: string; difficulty: number | null; color: string | null; url: string; points: number },
-    [string]
-  >(`
-    SELECT idx, problem_id, atcoder_contest, problem_index, title, difficulty, color, url, points
-    FROM contest_problems WHERE contest_id = ? ORDER BY idx
-  `).all(id);
-
   const participants = db.query<{ traq_id: string; atcoder_id: string }, [string]>(
     'SELECT traq_id, atcoder_id FROM participants WHERE contest_id = ?',
   ).all(id);
 
-  return c.json({ contest, problems, participants });
+  // 問題一覧は「参加済み かつ 開催時間中」のときだけ返す（APIからの先読み防止）
+  const traqId = getTraqId(getCookie(c, 'session'));
+  const joined = !!traqId && participants.some((p) => p.traq_id === traqId);
+  const now = Date.now();
+  const start = contest.start_at ? new Date(contest.start_at).getTime() : null;
+  const end = start !== null ? start + (contest.duration_minutes ?? 0) * 60_000 : null;
+  const ongoing = start !== null && end !== null && now >= start && now < end;
+  const canViewProblems = joined && ongoing;
+
+  const problems = canViewProblems
+    ? db.query<
+        { idx: number; problem_id: string; atcoder_contest: string; problem_index: string; title: string; difficulty: number | null; color: string | null; url: string; points: number },
+        [string]
+      >(`
+        SELECT idx, problem_id, atcoder_contest, problem_index, title, difficulty, color, url, points
+        FROM contest_problems WHERE contest_id = ? ORDER BY idx
+      `).all(id)
+    : [];
+
+  return c.json({ contest, problems, participants, canViewProblems });
 });
 
 // POST /api/contests/:id/join → 参加（AtCoder ID登録済みが必要）
@@ -246,6 +279,41 @@ app.delete('/:id', (c) => {
 
 const PENALTY_PER_WRONG = 5 * 60; // 1誤答あたり5分（秒）
 
+// AtCoder Problemsのモデル: 内部レートxの人が難易度dを解く確率
+//   P(solve | x, d) = 1 / (1 + 10^((d - x)/400))
+const solveProb = (x: number, d: number): number => 1 / (1 + 10 ** ((d - x) / 400));
+
+// 解いた/解けなかったパターンの尤度を最大化する x を三分探索で推定する。
+// items: { d:difficulty, solved } の配列（difficultyが分かる問題のみ）。
+// 1問も解いていない/解ける問題が無い場合は null。
+const estimatePerformance = (
+  items: { d: number; solved: boolean }[],
+): number | null => {
+  const solvedCount = items.filter((i) => i.solved).length;
+  if (items.length === 0 || solvedCount === 0) return null;
+
+  const logLik = (x: number): number => {
+    let s = 0;
+    for (const it of items) {
+      const p = Math.min(Math.max(solveProb(x, it.d), 1e-9), 1 - 1e-9);
+      s += it.solved ? Math.log(p) : Math.log(1 - p);
+    }
+    return s;
+  };
+
+  // 尤度は x について凹なので三分探索。探索範囲は問題の難易度レンジ±800に制限
+  // （全完時に上限へ張り付くのを防ぎ、現実的な値にする）。
+  const ds = items.map((i) => i.d);
+  let lo = Math.min(...ds) - 800;
+  let hi = Math.max(...ds) + 800;
+  for (let i = 0; i < 60; i++) {
+    const m1 = lo + (hi - lo) / 3;
+    const m2 = hi - (hi - lo) / 3;
+    if (logLik(m1) < logLik(m2)) lo = m1; else hi = m2;
+  }
+  return Math.round((lo + hi) / 2);
+};
+
 type ProblemResult = {
   solved: boolean;
   penalties: number;        // AC前の誤答数
@@ -255,17 +323,18 @@ type StandingRow = {
   rank: number;
   traqId: string;
   atcoderId: string;
+  perf: number | null;      // 推定パフォーマンス
   score: number;
   penaltySeconds: number;
   problems: Record<string, ProblemResult>;
 };
 type Standings = {
   contest: { id: string; title: string; start_at: string | null; duration_minutes: number | null };
-  problems: { problem_id: string; problem_index: string; points: number }[];
+  problems: { problem_id: string; problem_index: string; points: number; difficulty: number | null }[];
   rows: StandingRow[];
 };
 
-type ReportedSub = { problem_id: string; result: string; epoch_second: number };
+type ReportedSub = { submission_id: number; problem_id: string; result: string; epoch_second: number };
 
 // 報告された提出はDBから即時に読めるのでキャッシュは不要だが、
 // 提出報告時にキャッシュを無効化するための仕組みは維持する。
@@ -290,8 +359,11 @@ const computeStandings = (contestId: string): Standings | null => {
   >('SELECT id, title, start_at, duration_minutes FROM contests WHERE id = ?').get(contestId);
   if (!contest) return null;
 
-  const problems = db.query<{ problem_id: string; problem_index: string; points: number }, [string]>(
-    'SELECT problem_id, problem_index, points FROM contest_problems WHERE contest_id = ? ORDER BY idx',
+  const problems = db.query<
+    { problem_id: string; problem_index: string; points: number; difficulty: number | null },
+    [string]
+  >(
+    'SELECT problem_id, problem_index, points, difficulty FROM contest_problems WHERE contest_id = ? ORDER BY idx',
   ).all(contestId);
 
   const participants = db.query<{ traq_id: string; atcoder_id: string }, [string]>(
@@ -303,9 +375,12 @@ const computeStandings = (contestId: string): Standings | null => {
   const problemIds = new Set(problems.map((p) => p.problem_id));
   const pointsOf = new Map(problems.map((p) => [p.problem_id, p.points]));
 
+  // 同一秒の提出が複数あっても順序が定まるよう、時刻→提出IDの昇順で取得。
+  // 各問題で先頭から最初のACを採用する＝一番早い提出を参照する。
   const querySubs = db.query<ReportedSub, [string, number, number]>(
-    `SELECT problem_id, result, epoch_second FROM reported_submissions
-     WHERE atcoder_id = ? AND epoch_second BETWEEN ? AND ? ORDER BY epoch_second`,
+    `SELECT submission_id, problem_id, result, epoch_second FROM reported_submissions
+     WHERE atcoder_id = ? AND epoch_second BETWEEN ? AND ?
+     ORDER BY epoch_second ASC, submission_id ASC`,
   );
 
   const rows: StandingRow[] = [];
@@ -316,6 +391,10 @@ const computeStandings = (contestId: string): Standings | null => {
     const byProblem = new Map<string, ReportedSub[]>();
     for (const s of subs) {
       (byProblem.get(s.problem_id) ?? byProblem.set(s.problem_id, []).get(s.problem_id)!).push(s);
+    }
+    // 念のため各問題の提出も時刻→IDで昇順に整列（一番早いものを先頭に）
+    for (const list of byProblem.values()) {
+      list.sort((a, b) => (a.epoch_second - b.epoch_second) || (a.submission_id - b.submission_id));
     }
 
     const pres: Record<string, ProblemResult> = {};
@@ -339,12 +418,29 @@ const computeStandings = (contestId: string): Standings | null => {
       }
     }
 
+    const penaltySeconds = score > 0 ? lastAcRel + PENALTY_PER_WRONG * totalPenalties : 0;
+
+    // パフォーマンス推定: 難易度が分かる問題の解いた/解けなかったパターンから最尤推定。
+    const items = problems
+      .filter((p) => p.difficulty !== null)
+      .map((p) => ({ d: p.difficulty as number, solved: pres[p.problem_id].solved }));
+    let perf = estimatePerformance(items);
+    // 速さによる小さな補正（±最大50）: 速く解いたほど高く。
+    if (perf !== null && score > 0) {
+      const durSec = (contest.duration_minutes ?? 0) * 60;
+      if (durSec > 0) {
+        const usedFrac = Math.min(1, penaltySeconds / durSec);
+        perf += Math.round((0.5 - usedFrac) * 100);
+      }
+    }
+
     rows.push({
       rank: 0,
       traqId: part.traq_id,
       atcoderId: part.atcoder_id,
       score,
-      penaltySeconds: score > 0 ? lastAcRel + PENALTY_PER_WRONG * totalPenalties : 0,
+      penaltySeconds,
+      perf,
       problems: pres,
     });
   }

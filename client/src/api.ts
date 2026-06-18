@@ -41,12 +41,13 @@ export type StandingRow = {
   atcoderId: string;
   score: number;
   penaltySeconds: number;
+  perf: number | null;
   problems: Record<string, ProblemResult>;
 };
 
 export type Standings = {
   contest: { id: string; title: string; start_at: string | null; duration_minutes: number | null };
-  problems: { problem_id: string; problem_index: string; points: number }[];
+  problems: { problem_id: string; problem_index: string; points: number; difficulty: number | null }[];
   rows: StandingRow[];
 };
 
@@ -70,6 +71,7 @@ export type ContestDetail = {
   contest: Omit<ContestSummary, 'problem_count'>;
   problems: Problem[];
   participants: Participant[];
+  canViewProblems: boolean;
 };
 
 // 色の定義（表示用）
