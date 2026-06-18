@@ -1,5 +1,5 @@
 {
-  "name": "virtualabc",
+  "name": "nagotch_virtual",
   "module": "server/index.ts",
   "type": "module",
   "private": true,

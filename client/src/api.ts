@@ -6,7 +6,7 @@ export type User = {
 };
 
 export type RatingInfo = {
-  rating: number | null; // virtualABC 独自レート
+  rating: number | null; // nagotch_virtual 独自レート
   contests: number;      // レート算出に使った（終了済み参加）コンテスト数
 };
 

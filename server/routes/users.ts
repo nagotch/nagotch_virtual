@@ -31,7 +31,7 @@ app.post('/register', async (c) => {
   return c.json({ ok: true, traqId, atcoderId });
 });
 
-// GET /api/users/rating → ログイン中ユーザーの virtualABC 独自レーティング
+// GET /api/users/rating → ログイン中ユーザーの nagotch_virtual 独自レーティング
 // 参加して終了したコンテストの perf 履歴から算出する（AtCoderの実レートは使わない）。
 app.get('/rating', (c) => {
   const traqId = getTraqId(getCookie(c, 'session'));

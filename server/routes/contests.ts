@@ -99,7 +99,7 @@ app.post('/', async (c) => {
   }
 
   const id = randomId();
-  const title = (body.title?.trim() || `Virtual ABC ${new Date().toLocaleDateString('ja-JP')}`).slice(0, 100);
+  const title = (body.title?.trim() || `nagotch_virtual ${new Date().toLocaleDateString('ja-JP')}`).slice(0, 100);
 
   const insertContest = db.prepare(
     'INSERT INTO contests (id, title, mode, created_by, start_at, duration_minutes) VALUES (?, ?, ?, ?, ?, ?)',

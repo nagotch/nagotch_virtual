@@ -83,8 +83,8 @@ function App() {
       <header className="topbar">
         <div className="brand">
           <a href="#/" className="brand-link">
-            <span className="logo">vABC</span>
-            <strong>Virtual ABC</strong>
+            <span className="logo">nv</span>
+            <strong>nagotch_virtual</strong>
           </a>
         </div>
 

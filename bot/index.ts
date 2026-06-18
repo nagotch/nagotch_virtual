@@ -1,7 +1,7 @@
 import { Api, Client } from 'traq-bot-ts';
 
 const TOKEN = process.env.TOKEN;
-const BOT_NAME = process.env.BOT_NAME ?? 'BOT_virtualABC';
+const BOT_NAME = process.env.BOT_NAME ?? 'BOT_nagotch_virtual';
 
 if (!TOKEN) throw new Error('TOKEN is not set');
 
@@ -28,7 +28,7 @@ client.on('MESSAGE_CREATED', async ({ body }) => {
   );
   if (!mentioned) return;
 
-  // plainText例: "@BOT_virtualABC help" → args = ["help"]
+  // plainText例: "@BOT_nagotch_virtual help" → args = ["help"]
   const parts = message.plainText.trim().split(/\s+/);
   const mentionIdx = parts.findIndex((p) => p === `@${BOT_NAME}`);
   const args = parts.slice(mentionIdx + 1);
@@ -46,7 +46,7 @@ client.on('MESSAGE_CREATED', async ({ body }) => {
 const sendHelp = async (channelId: string) => {
   await send(
     channelId,
-    `## Virtual ABC Bot
+    `## nagotch_virtual Bot
 
 | コマンド | 説明 |
 |---------|------|
@@ -59,4 +59,4 @@ const sendHelp = async (channelId: string) => {
   );
 };
 
-await client.listen(() => console.log(`Virtual ABC Bot (${BOT_NAME}) started!`));
+await client.listen(() => console.log(`nagotch_virtual Bot (${BOT_NAME}) started!`));
