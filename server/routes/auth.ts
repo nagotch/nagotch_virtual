@@ -50,9 +50,9 @@ app.get('/callback', async (c) => {
   if (!entry) return c.json({ error: 'invalid state' }, 400);
   pkceStore.delete(state);
 
-  let accessToken: string;
+  let token: Awaited<ReturnType<typeof exchangeCodeForToken>>;
   try {
-    accessToken = await exchangeCodeForToken(
+    token = await exchangeCodeForToken(
       code, entry.codeVerifier, REDIRECT_URI, CLIENT_ID, CLIENT_SECRET,
     );
   } catch (e) {
@@ -60,9 +60,11 @@ app.get('/callback', async (c) => {
     return c.json({ error: 'token exchange failed' }, 500);
   }
 
+  console.log('[auth] token scope:', token.scope, 'has id_token:', !!token.id_token);
+
   let me: { name: string };
   try {
-    me = await getTraqMe(accessToken);
+    me = await getTraqMe(token);
   } catch (e) {
     console.error('[auth] failed to get user info:', e);
     return c.json({ error: 'failed to get user info' }, 500);

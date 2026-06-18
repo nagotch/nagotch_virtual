@@ -27,13 +27,20 @@ export const generateState = (): string => {
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 };
 
+export type TokenResponse = {
+  access_token: string;
+  id_token?: string;
+  token_type?: string;
+  scope?: string;
+};
+
 export const exchangeCodeForToken = async (
   code: string,
   codeVerifier: string,
   redirectUri: string,
   clientId: string,
   clientSecret: string,
-): Promise<string> => {
+): Promise<TokenResponse> => {
   const params: Record<string, string> = {
     grant_type:    'authorization_code',
     client_id:     clientId,
@@ -53,17 +60,37 @@ export const exchangeCodeForToken = async (
     const body = await res.text();
     throw new Error(`Token exchange failed: ${res.status} ${body}`);
   }
-  const { access_token } = await res.json() as { access_token: string };
-  return access_token;
+  return res.json() as Promise<TokenResponse>;
 };
 
-export const getTraqMe = async (accessToken: string): Promise<{ name: string }> => {
+// Decode a JWT payload (no signature verification — we trust the token
+// because it came directly from traQ's token endpoint over TLS).
+const decodeJwtPayload = (jwt: string): Record<string, unknown> => {
+  const payload = jwt.split('.')[1];
+  if (!payload) throw new Error('Invalid JWT');
+  const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+  const json = new TextDecoder().decode(
+    Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0)),
+  );
+  return JSON.parse(json);
+};
+
+// Resolve the traQ username from an OIDC token response.
+// Prefer the id_token claims; fall back to the userinfo endpoint.
+export const getTraqMe = async (token: TokenResponse): Promise<{ name: string }> => {
+  if (token.id_token) {
+    const claims = decodeJwtPayload(token.id_token);
+    const name =
+      (claims.preferred_username as string | undefined) ??
+      (claims.name as string | undefined);
+    if (name) return { name };
+  }
+
   const res = await fetch(TRAQ_ME_URL, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${token.access_token}` },
   });
   if (!res.ok) throw new Error(`Failed to get user info: ${res.status}`);
   const data = await res.json() as Record<string, string>;
-  // OIDC userinfo: preferred_username or name contains the traQ username
   const name = data.preferred_username ?? data.name ?? data.sub;
   if (!name) throw new Error('Could not determine traQ username from userinfo');
   return { name };
