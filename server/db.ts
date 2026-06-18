@@ -3,7 +3,7 @@ import { mkdirSync } from 'fs';
 
 mkdirSync('data', { recursive: true });
 
-const db = new Database('data/virtualABC.db', { create: true });
+const db = new Database('data/nagotch_virtual.db', { create: true });
 db.run('PRAGMA journal_mode = WAL');
 
 db.run(`

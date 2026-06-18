@@ -10,7 +10,7 @@
 // indexの判定には必ず contest-problem.json を使う。
 
 const BASE = 'https://kenkoooo.com/atcoder/resources';
-const UA = 'virtualABC/0.1 (traP internal tool)';
+const UA = 'nagotch_virtual/0.1 (traP internal tool)';
 
 type ContestProblem = {
   contest_id: string;

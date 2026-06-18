@@ -1,4 +1,4 @@
-// virtualABC 独自レーティング
+// nagotch_virtual 独自レーティング
 // AtCoder Rating System ver.1.00 のレート集計式に基づく。
 // 各コンテストの performance（難易度＋時間から推定した perf）の履歴から算出する。
 
