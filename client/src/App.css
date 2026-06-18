@@ -334,8 +334,9 @@ textarea.text-input {
 }
 
 /* ---- wider cards & headings ---- */
+/* 横幅いっぱいに使う（左右の余白のみ残す） */
 .card-wide {
-  max-width: 980px;
+  max-width: none;
 }
 
 .card-head {
