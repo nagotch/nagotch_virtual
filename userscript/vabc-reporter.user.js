@@ -1,15 +1,13 @@
 // ==UserScript==
 // @name         virtualABC Submission Reporter
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  AtCoderの提出結果を virtualABC サーバーに報告し、リアルタイム順位表を実現します。元の traQ 通知も任意で併用できます。
+// @version      1.1
+// @description  AtCoderの提出結果を virtualABC サーバーに報告し、リアルタイム順位表を実現します。
 // @author       traP
 // @match        https://atcoder.jp/contests/*
 // @run-at       document-end
 // @grant        GM_xmlhttpRequest
 // @connect      localhost
-// @connect      q.trap.jp
-// @connect      kenkoooo.com
 // ==/UserScript==
 
 (function () {
@@ -20,16 +18,8 @@
   const VABC_API = 'http://localhost:3000';
   // マイページで取得した自分のトークンを貼り付ける
   const VABC_TOKEN = 'PASTE_YOUR_TOKEN_HERE';
-
-  // （任意）traQ 通知も使う場合は設定。使わないなら空のままでOK。
-  const TRAQ_WEBHOOK_URL = '';
-  const TRAQ_CHANNEL_ID = '';
   // ================================================================
 
-  const RESULT_EMOJI = {
-    AC: ':accepted.large:', WA: ':wrong_answer.large:', RE: ':runtime_error.large:',
-    TLE: ':time_limit_exceeded.large:', MLE: ':memory_limit_exceeded.large:', CE: ':compilation_error.large:',
-  };
   const FINAL = ['AC', 'WA', 'RE', 'TLE', 'MLE', 'CE', 'OLE', 'IE', 'WR'];
 
   const url = location.href;
@@ -41,8 +31,6 @@
     form.addEventListener('submit', () => {
       const m = location.pathname.match(/\/tasks\/([^/]+)/);
       localStorage.setItem('vabc_submitted', 'true');
-      localStorage.setItem('vabc_title', document.title);
-      localStorage.setItem('vabc_url', location.href);
       if (m) localStorage.setItem('vabc_problem_id', m[1]);
       else localStorage.removeItem('vabc_problem_id');
     });
@@ -68,27 +56,19 @@
 
       // --- 提出情報を抽出 ---
       const problemId = localStorage.getItem('vabc_problem_id');
-      const title = localStorage.getItem('vabc_title') || 'AtCoder Task';
 
       const link = row.querySelector('a[href*="/submissions/"]') || row.querySelector('td:last-child a');
       const href = link ? link.getAttribute('href') : '';
       const idMatch = href.match(/\/submissions\/(\d+)/);
       const submissionId = idMatch ? Number(idMatch[1]) : null;
-      const submissionUrl = href ? 'https://atcoder.jp' + href : location.href;
 
       // 提出時刻（AtCoderのtime要素。JST想定で解釈、失敗時は現在時刻）
       const epochSecond = parseEpochSecond(row);
 
-      // --- virtualABC サーバーへ報告 ---
       if (problemId && submissionId && VABC_TOKEN && VABC_TOKEN !== 'PASTE_YOUR_TOKEN_HERE') {
         reportToVABC({ submissionId, problemId, result, epochSecond });
       } else {
         console.warn('[vABC] トークン未設定 or 情報不足のため報告スキップ');
-      }
-
-      // --- （任意）traQ 通知 ---
-      if (TRAQ_WEBHOOK_URL && TRAQ_CHANNEL_ID) {
-        notifyTraq(problemId, title, RESULT_EMOJI[result] || result, submissionUrl);
       }
     }, 1000);
   }
@@ -115,33 +95,6 @@
       data: JSON.stringify(payload),
       onload: (res) => console.log('[vABC] 報告完了', res.status, res.responseText),
       onerror: () => console.error('[vABC] 報告失敗（VABC_API / @connect を確認）'),
-    });
-  }
-
-  function notifyTraq(problemId, title, resultLabel, submissionUrl) {
-    const send = (diffLine) => {
-      GM_xmlhttpRequest({
-        method: 'POST', url: TRAQ_WEBHOOK_URL,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-TRAQ-Channel-Id': TRAQ_CHANNEL_ID },
-        data: `${title} ${resultLabel}\n${diffLine}\n詳細: ${submissionUrl}`,
-      });
-    };
-    if (!problemId) return send('Difficulty: 取得失敗');
-    GM_xmlhttpRequest({
-      method: 'GET', url: 'https://kenkoooo.com/atcoder/resources/problem-models.json',
-      onload: (r) => {
-        let diff = '取得失敗';
-        try {
-          const models = JSON.parse(r.responseText);
-          const raw = models[problemId] && models[problemId].difficulty;
-          if (raw !== undefined) {
-            diff = raw >= 400 ? Math.round(raw) : Math.round(400 / Math.exp(1.0 - raw / 400.0));
-            if (models[problemId].is_experimental) diff = `${diff} (experimental)`;
-          }
-        } catch (e) { /* noop */ }
-        send(`Difficulty: ${diff}`);
-      },
-      onerror: () => send('Difficulty: 取得失敗'),
     });
   }
 })();
