@@ -291,13 +291,16 @@ const computeStandings = async (contestId: string): Promise<Standings | null> =>
   const problemIds = new Set(problems.map((p) => p.problem_id));
   const pointsOf = new Map(problems.map((p) => [p.problem_id, p.points]));
 
+  console.log(`[standings] computing ${contestId}: ${participants.length} participants`);
+  const t0 = Date.now();
+
   const rows: StandingRow[] = [];
   for (const part of participants) {
     let subs: Awaited<ReturnType<typeof fetchUserSubmissions>> = [];
     try {
       subs = await fetchUserSubmissions(part.atcoder_id, startUnix);
     } catch (e) {
-      console.error(`[standings] failed for ${part.atcoder_id}:`, e);
+      console.error(`[standings] submissions fetch failed for ${part.atcoder_id}:`, e);
     }
 
     // 対象問題・開催時間内に絞り、問題ごとに時系列で整理
@@ -352,6 +355,7 @@ const computeStandings = async (contestId: string): Promise<Standings | null> =>
     prev = { score: r.score, pen: r.penaltySeconds };
   });
 
+  console.log(`[standings] done ${contestId} in ${Date.now() - t0}ms`);
   const data: Standings = { contest, problems, rows };
   standingsCache.set(contestId, { at: Date.now(), data });
   return data;

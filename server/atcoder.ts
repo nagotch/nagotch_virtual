@@ -229,7 +229,10 @@ export const fetchUserSubmissions = async (
   for (let page = 0; page < 20; page++) {
     const res = await fetch(
       `https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user=${encodeURIComponent(user)}&from_second=${from}`,
-      { headers: { 'User-Agent': UA, 'Accept-Encoding': 'gzip' } },
+      {
+        headers: { 'User-Agent': UA, 'Accept-Encoding': 'gzip' },
+        signal: AbortSignal.timeout(15000), // ハング防止
+      },
     );
     if (!res.ok) {
       if (res.status === 404) return all; // 存在しないユーザー

@@ -7,17 +7,35 @@ const TRAQ_ICON = (name: string) =>
 export default function Standings({ contestId }: { contestId: string }) {
   const [data, setData] = useState<StandingsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   const load = async () => {
     setLoading(true);
-    setData(await api.standings(contestId));
-    setLoading(false);
+    setFailed(false);
+    try {
+      const res = await api.standings(contestId);
+      if (res) setData(res);
+      else setFailed(true);
+    } catch (e) {
+      console.error('standings load failed:', e);
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [contestId]);
 
   if (loading && !data) return <p className="msg">順位表を集計中...</p>;
-  if (!data) return <p className="section-empty">順位表を取得できませんでした。</p>;
+  if (failed && !data) {
+    return (
+      <div className="standings-wrap">
+        <p className="section-empty">順位表を取得できませんでした。</p>
+        <button className="btn btn-ghost btn-inline" onClick={load}>再試行</button>
+      </div>
+    );
+  }
+  if (!data) return null;
 
   return (
     <div className="standings-wrap">
