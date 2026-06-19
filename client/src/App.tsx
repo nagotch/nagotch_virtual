@@ -95,6 +95,15 @@ function App() {
           <nav className="nav">
             {navLink('#/contests', 'コンテスト')}
             {navLink('#/recurring', '定期開催')}
+            <a
+              className="nav-link"
+              href="https://nagotch-virtual.trap.show/vabc-reporter.user.js"
+              target="_blank"
+              rel="noreferrer"
+              title="提出報告用ユーザースクリプト（Tampermonkey）をインストール"
+            >
+              📥 スクリプト
+            </a>
           </nav>
         )}
 
