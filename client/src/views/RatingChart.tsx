@@ -29,25 +29,25 @@ export default function RatingChart({ history }: { history: RatingHistoryPoint[]
   const [showPerf, setShowPerf] = useState(true);
   const [hover, setHover] = useState<number | null>(null);
 
-  if (history.length === 0) {
-    return <p className="section-empty">まだRated参加の記録がありません。</p>;
-  }
+  // データが無くても枠・レート帯を描く（既定レンジ 0〜1600）。
+  const hasData = history.length > 0;
 
   const times = history.map((p) => new Date(p.date).getTime());
-  const tMin = Math.min(...times);
-  const tMax = Math.max(...times);
+  const tMin = hasData ? Math.min(...times) : 0;
+  const tMax = hasData ? Math.max(...times) : 0;
   const tRange = tMax - tMin;
   const spanYear = tRange > 365 * 24 * 3600 * 1000;
 
   // y範囲: 表示中の系列の値から、400刻みにスナップして決める。
   const vals: number[] = [];
-  if (showRating) vals.push(...history.map((p) => p.rating));
-  if (showPerf) vals.push(...history.map((p) => p.perf));
+  if (hasData && showRating) vals.push(...history.map((p) => p.rating));
+  if (hasData && showPerf) vals.push(...history.map((p) => p.perf));
   const hasSeries = vals.length > 0;
   const vMin = hasSeries ? Math.min(...vals) : 0;
-  const vMax = hasSeries ? Math.max(...vals) : 400;
-  const yMin = Math.max(0, Math.floor(vMin / 400) * 400);
+  const vMax = hasSeries ? Math.max(...vals) : 0;
+  let yMin = Math.max(0, Math.floor(vMin / 400) * 400);
   let yMax = Math.ceil((vMax + 1) / 400) * 400;
+  if (!hasData) { yMin = 0; yMax = 1600; } // データ無しの既定レンジ
   if (yMax <= yMin) yMax = yMin + 400;
 
   const x = (t: number): number =>
@@ -69,11 +69,13 @@ export default function RatingChart({ history }: { history: RatingHistoryPoint[]
   const yTicks = RATING_BAND_MINS.filter((m) => m >= yMin && m <= yMax);
   if (yTicks[yTicks.length - 1] !== yMax) yTicks.push(yMax);
 
-  // x軸目盛り（時間で等間隔に最大5本）
+  // x軸目盛り（時間で等間隔に最大5本）。データ無しのときは描かない。
   const tickCount = Math.min(5, history.length);
   const xTicks: number[] = [];
-  if (tRange === 0) xTicks.push(tMin);
-  else for (let i = 0; i < tickCount; i++) xTicks.push(tMin + (tRange * i) / (tickCount - 1));
+  if (hasData) {
+    if (tRange === 0) xTicks.push(tMin);
+    else for (let i = 0; i < tickCount; i++) xTicks.push(tMin + (tRange * i) / (tickCount - 1));
+  }
 
   const polyline = (key: 'rating' | 'perf'): string =>
     history.map((p, i) => `${x(times[i])},${y(p[key])}`).join(' ');
@@ -110,6 +112,13 @@ export default function RatingChart({ history }: { history: RatingHistoryPoint[]
         {/* 軸枠 */}
         <line x1={X0} y1={Y1} x2={X1} y2={Y1} stroke="currentColor" opacity={0.35} />
         <line x1={X0} y1={Y0} x2={X0} y2={Y1} stroke="currentColor" opacity={0.35} />
+
+        {/* データ無しの案内 */}
+        {!hasData && (
+          <text x={(X0 + X1) / 2} y={(Y0 + Y1) / 2} textAnchor="middle" fontSize={13} fill="currentColor" opacity={0.5}>
+            まだRated参加の確定記録がありません
+          </text>
+        )}
 
         {/* perf系列 */}
         {showPerf && history.length > 1 && (

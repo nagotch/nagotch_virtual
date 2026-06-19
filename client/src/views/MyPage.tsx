@@ -80,17 +80,11 @@ export default function MyPage({
       </div>
     );
 
-    if (rating.rating === null) {
-      return (
-        <span className="value">
-          <span className="badge unset">未確定</span>
-          {predictedNote}
-        </span>
-      );
-    }
+    // レートが未確定（Rated参加なし）の場合は 0 として表示する。
+    const val = rating.rating ?? 0;
     return (
-      <span className="value" style={{ color: ratingColor(rating.rating) }}>
-        {rating.rating}
+      <span className="value" style={{ color: ratingColor(val) }}>
+        {val}
         <span className="rating-sub"> （{rating.contests}回）</span>
         {predictedNote}
       </span>
@@ -185,8 +179,6 @@ export default function MyPage({
                 <p className="section-empty">AtCoder IDを登録すると表示されます。</p>
               ) : history === null ? (
                 <p className="section-empty">読み込み中...</p>
-              ) : chartPoints.length === 0 ? (
-                <p className="section-empty">まだRated参加の確定記録がありません。</p>
               ) : (
                 <>
                   <p className="hint" style={{ marginTop: 0 }}>
