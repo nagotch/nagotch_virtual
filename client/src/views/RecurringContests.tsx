@@ -81,7 +81,7 @@ export default function RecurringContests({ user }: { user: User }) {
   };
 
   const specSummary = (r: RecurringContest): string => {
-    if (r.mode === 'random') return `ランダム ${r.count ?? '?'}問`;
+    if (r.mode === 'random') return `ABC-like ${r.count ?? '?'}問`;
     try {
       const spec = JSON.parse(r.color_spec ?? '{}') as Partial<Record<ColorKey, number>>;
       const parts = COLOR_DEFS
@@ -235,7 +235,7 @@ export default function RecurringContests({ user }: { user: User }) {
               className={`seg-btn${mode === 'random' ? ' active' : ''}`}
               onClick={() => setMode('random')}
             >
-              過去問からランダム
+              ABC-like
             </button>
             <button
               type="button"
