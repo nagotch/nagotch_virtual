@@ -1052,3 +1052,31 @@ code {
 .recurring-disabled {
   opacity: 0.6;
 }
+
+/* コンテスト削除ボタン: 右下隅に控えめに表示（誤操作・乱用防止） */
+.delete-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 28px;
+}
+.btn-delete-mini {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 6px;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+.btn-delete-mini:hover {
+  opacity: 1;
+  color: #c0392b;
+  text-decoration: underline;
+}
+.btn-delete-mini:disabled {
+  opacity: 0.4;
+  cursor: default;
+  text-decoration: none;
+}

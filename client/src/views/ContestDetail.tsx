@@ -61,7 +61,11 @@ export default function ContestDetail({ id, meId, isAdmin }: { id: string; meId:
   };
 
   const handleDelete = async () => {
-    if (!confirm('このコンテストを削除しますか？この操作は取り消せません。')) return;
+    const n = data?.participants.length ?? 0;
+    const msg = n > 0
+      ? `このコンテストには参加者が ${n} 人います。本当に削除しますか？この操作は取り消せません。`
+      : 'このコンテストを削除しますか？この操作は取り消せません。';
+    if (!confirm(msg)) return;
     setDeleting(true);
     setError('');
     const res = await api.deleteContest(id);
@@ -197,9 +201,11 @@ export default function ContestDetail({ id, meId, isAdmin }: { id: string; meId:
       </div>
 
       {isOwner && (
-        <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
-          {deleting ? '削除中...' : 'このコンテストを削除'}
-        </button>
+        <div className="delete-row">
+          <button className="btn-delete-mini" onClick={handleDelete} disabled={deleting} title="このコンテストを削除">
+            {deleting ? '削除中...' : '削除'}
+          </button>
+        </div>
       )}
     </div>
   );
