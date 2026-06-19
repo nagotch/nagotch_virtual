@@ -269,11 +269,20 @@ app.get('/:id/standings', async (c) => {
   );
   if (!contest) return c.json({ error: 'not found' }, 404);
 
-  const { ongoing } = timingOf(contest.start_at, contest.duration_minutes);
-  let mode: StandingsMode = ongoing ? 'predicted' : 'official';
+  // AtCoder Problems のクロール反映は12〜24時間かかることがある。終了直後にapiのみ
+  // (official)へ切り替えると、まだ取り込めていない提出が抜けてスカスカに見える。
+  // そこで開催中〜終了後24時間は予測(api+script)を表示し、24時間経過後に確定(apiのみ)へ
+  // 切り替える（2段階通知のタイミングと揃える）。
+  const FINAL_DELAY_MS = 24 * 60 * 60 * 1000;
+  const startMs = contest.start_at ? new Date(contest.start_at).getTime() : null;
+  const endMs = startMs !== null ? startMs + (contest.duration_minutes ?? 0) * 60_000 : null;
+  const withinProvisional = endMs !== null && Date.now() < endMs + FINAL_DELAY_MS;
+
+  let mode: StandingsMode = withinProvisional ? 'predicted' : 'official';
   if (mode === 'official') {
     const startUnix = contest.start_at ? Math.floor(new Date(contest.start_at).getTime() / 1000) : 0;
     const endUnix = startUnix + (contest.duration_minutes ?? 0) * 60;
+    // 24時間経ってもapiが1件も無い場合（クロール大幅遅延）の保険として予測にフォールバック。
     if (!(await hasApiSubmissions(id, startUnix, endUnix))) mode = 'predicted';
   }
 
