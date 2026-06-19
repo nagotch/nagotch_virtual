@@ -7,6 +7,7 @@ import CreateContest from './views/CreateContest';
 import ContestDetail from './views/ContestDetail';
 import RecurringContests from './views/RecurringContests';
 import Ranking from './views/Ranking';
+import Guide from './views/Guide';
 import ClockWidget from './components/ClockWidget';
 
 type Theme = 'light' | 'dark';
@@ -67,6 +68,7 @@ function App() {
     if (path === '/contests/new') return <CreateContest user={user} />;
     if (path === '/recurring') return <RecurringContests user={user} />;
     if (path === '/ranking') return <Ranking />;
+    if (path === '/guide') return <Guide />;
     const m = path.match(/^\/contests\/(.+)$/);
     if (m) return <ContestDetail id={m[1]} meId={user.traqId} />;
     return <MyPage user={user} onUserChange={setUser} onLogout={handleLogout} />;
@@ -95,6 +97,7 @@ function App() {
 
         {user && (
           <nav className="nav">
+            {navLink('#/guide', '遊び方')}
             {navLink('#/contests', 'コンテスト')}
             {navLink('#/recurring', '定期開催')}
             {navLink('#/ranking', 'ランキング')}
