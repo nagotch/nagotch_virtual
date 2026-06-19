@@ -113,7 +113,7 @@ export default function CreateContest({ user }: { user: User }) {
             className={`seg-btn${mode === 'random' ? ' active' : ''}`}
             onClick={() => setMode('random')}
           >
-            過去問からランダム
+            ABC-like
           </button>
           <button
             type="button"

@@ -94,7 +94,7 @@ export type Standings = {
 export type ContestMode = 'random' | 'color' | 'manual';
 
 export const modeLabel = (m: ContestMode | string): string =>
-  m === 'random' ? 'ランダム' : m === 'color' ? '色指定' : m === 'manual' ? '手動' : m;
+  m === 'random' ? 'ABC-like' : m === 'color' ? '色指定' : m === 'manual' ? '手動' : m;
 
 export type ContestSummary = {
   id: string;
