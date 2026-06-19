@@ -41,7 +41,6 @@ export default function Ranking() {
               <tr>
                 <th>順位</th>
                 <th className="ht-title">ユーザー</th>
-                <th>AtCoder ID</th>
                 <th>レート</th>
                 <th>参加回数</th>
               </tr>
@@ -56,7 +55,6 @@ export default function Ranking() {
                       @{r.traqId}
                     </span>
                   </td>
-                  <td>{r.atcoderId}</td>
                   <td style={{ color: ratingColor(r.rating), fontWeight: 700 }}>{r.rating}</td>
                   <td>{r.contests}</td>
                 </tr>

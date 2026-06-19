@@ -28,11 +28,10 @@ export type RatingHistoryPoint = {
   rating: number;   // そのコンテスト終了時点での累積レート
 };
 
-// 全ユーザーのレートランキング1行。
+// 全ユーザーのレートランキング1行（AtCoder IDは非公開）。
 export type RankingRow = {
   rank: number;
   traqId: string;
-  atcoderId: string;
   rating: number;
   contests: number;
 };
